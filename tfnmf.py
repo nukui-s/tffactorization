@@ -35,7 +35,7 @@ class TFNMF(object):
         WV = tf.matmul(Wt, V_)
         WWH = tf.matmul(tf.matmul(Wt, W), H)
         WV_WWH = WV / WWH
-        #select op should be executed in cup not in gpu
+        #select op should be executed in cpu not in gpu
         with tf.device('/cpu:0'):
             #convert nan to zero
             WV_WWH = tf.select(tf.is_nan(WV_WWH),
@@ -60,15 +60,13 @@ class TFNMF(object):
         #sum of delta in W
         self._delta = tf.reduce_sum(tf.abs(W_old - W))
 
-    def run(self, sess, max_iter=200):
+    def run(self, sess, max_iter=200, min_delta=0.001):
         tf.initialize_all_variables().run()
         for i in range(max_iter):
             sess.run(self._save_W)
             H, _ = sess.run([self.H, self._update_H])
             W, _ = sess.run([self.W, self._update_W])
-            print(len(sess.graph.get_operations()))
-            print(sess.graph())
             delta = sess.run(self._delta)
-            if delta < 0.001:
+            if delta < min_delta:
                 break
         return W, H
