@@ -1,10 +1,11 @@
-# tffactorization
+# tfdecomsition
 Implementations of matrix factorization or tensor factorization algorithms on TensorFlow
 
 This contains here:
         Non-negative Matrix Factorization
 
 #Basic Usage
+When applying NMF for V=WH,
 ```
 import tensorflow as tf
 from tfnmf import TFNMF
