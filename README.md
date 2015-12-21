@@ -1,4 +1,4 @@
-# tfdecomsition
+# tffactorization
 Implementations of matrix factorization or tensor factorization algorithms on TensorFlow
 
 This contains here:
