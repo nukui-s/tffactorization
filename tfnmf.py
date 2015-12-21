@@ -9,7 +9,11 @@ import numpy as np
 import tensorflow as tf
 
 class TFNMF(object):
-    """class for Non-negative Matrix Factorization on TensorFlow"""
+    """class for Non-negative Matrix Factorization on TensorFlow
+
+    Requirements:
+        TensorFlow version >= 0.6
+    """
     def __init__(self, V, rank):
 
         #convert numpy matrix(2D-array) into TF Tensor
