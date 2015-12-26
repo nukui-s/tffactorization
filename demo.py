@@ -14,11 +14,11 @@ from tfnmf import TFNMF
 
 def main():
     #user setting parameters
-    V = np.random.rand(10000,10000)
+    V = np.random.rand(100,100)
     rank = 10
     num_core = 8
 
-    tfnmf = TFNMF(V, rank)
+    tfnmf = TFNMF(V, rank, algo="grad")
     config = tf.ConfigProto(inter_op_parallelism_threads=num_core,
                                        intra_op_parallelism_threads=num_core)
     with tf.Session(config=config) as sess:
@@ -30,6 +30,7 @@ def main():
     H = np.mat(H)
     error = np.power(V - W * H, 2).sum()
     print("Reconstruction Error for TFNMF: ", error)
+    return V, W, H
 
 if __name__ == '__main__':
-    main()
+    V, W, H = main()

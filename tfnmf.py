@@ -8,7 +8,7 @@ from __future__ import division
 import numpy as np
 import tensorflow as tf
 
-INFINITY = 10e+12
+INFINITY = 10e+2
 
 class TFNMF(object):
     """class for Non-negative Matrix Factorization on TensorFlow
@@ -24,11 +24,12 @@ class TFNMF(object):
 
         self.rank = rank
         self.algo = algo
+        #used for AdagradOptimiber
         self.lr = learning_rate
 
         #scale uniform random with sqrt(V.mean() / rank)
         scale = 2 * np.sqrt(V.mean() / rank)
-        initializer = tf.random_uniform_initializer(maxval=scale)
+        initializer = tf.random_uniform_initializer(minval=0.0, maxval=scale)
 
         self.H =  tf.get_variable("H", [rank, shape[1]],
                                      initializer=initializer)
@@ -42,7 +43,7 @@ class TFNMF(object):
         else:
             raise ValueError("The attribute algo must be in {'mu', 'grad'}")
 
-    def _build_grad_algoritthm(self):
+    def _build_grad_algorithm(self):
         """build dataflow graph for optimization with Adagrad algorithm"""
 
         V, H, W = self.V, self.H, self.W
@@ -50,16 +51,19 @@ class TFNMF(object):
         WH = tf.matmul(W, H)
 
         #cost of Frobenius norm
-        f_norm = tf.sum(tf.pow(V - WH, 2))
+        f_norm = tf.reduce_sum(tf.pow(V - WH, 2))
 
         #Non-negative constraint
         #If all elements positive, constraint will be 0
-        nn_w = tf.sum(tf.abs(W) - W)
-        nn_h = tf.sum(tf.abs(H) - H)
+        nn_w = tf.reduce_sum(tf.abs(W) - W)
+        nn_h = tf.reduce_sum(tf.abs(H) - H)
         constraint = INFINITY * (nn_w + nn_h)
 
-        self.loss = loss= f_norm + constraint
-        self.optimize = tf.train.AdagradOptimiber(self.lr).minimize(loss)
+        self.loss = loss= f_norm
+        self.optimize = tf.train.AdagradOptimizer(self.lr).minimize(loss)
+
+        loss_summ = tf.scalar_summary("loss", loss)
+        self.merged = tf.merge_all_summaries()
 
 
     def _build_mu_algorithm(self):
@@ -104,19 +108,17 @@ class TFNMF(object):
             W_new = W * VH_WHH
             update_W = W.assign(W_new)
 
+        self.step = tf.group(save_W, update_H, update_W)
         self.delta = tf.reduce_sum(tf.abs(W_old - W))
 
-        self.step = tf.group(save_W, update_H, update_W)
 
-    def run(self, sess, max_iter=200, min_delta=0.001):
-        algo = self.algo
-
+    def run(self, sess, max_iter=10000, min_delta=0.001, logfile="tfnmflog"):
+        writer = tf.train.SummaryWriter(logfile, sess.graph_def)
         tf.initialize_all_variables().run()
-
-        if algo == "mu":
+        if self.algo == "mu":
             return self._run_mu(sess, max_iter, min_delta)
-        elif algo == "grad":
-            return self._run_grad(sess, max_iter, min_delta)
+        elif self.algo == "grad":
+            return self._run_grad(sess, max_iter, min_delta, writer)
         else:
             raise ValueError
 
@@ -130,13 +132,15 @@ class TFNMF(object):
         H = self.H.eval()
         return W, H
 
-    def _run_grad(sess, max_iter, min_delta):
+    def _run_grad(self, sess, max_iter, min_delta, writer):
         pre_loss = INFINITY
         for i in xrange(max_iter):
-            loss, _ = sess.run(self.loss, self.optimize)
-            if pre_loss - loss < min_delta:
-                break
+            loss, merged, _ = sess.run([self.loss, self.merged, self.optimize])
+            #if pre_loss - loss < min_delta:
+            #    break
             pre_loss = loss
+            if i % 10 == 0:
+                writer.add_summary(merged, i)
         W = self.W.eval()
         H = self.H.eval()
         return W, H
