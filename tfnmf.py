@@ -42,7 +42,7 @@ class TFNMF(object):
         else:
             raise ValueError("The attribute algo must be in {'mu', 'grad'}")
 
-    def _build_grad_algoritthm(self):
+    def _build_grad_algorithm(self):
         """build dataflow graph for optimization with Adagrad algorithm"""
 
         V, H, W = self.V, self.H, self.W
@@ -50,16 +50,16 @@ class TFNMF(object):
         WH = tf.matmul(W, H)
 
         #cost of Frobenius norm
-        f_norm = tf.sum(tf.pow(V - WH, 2))
+        f_norm = tf.reduce_sum(tf.pow(V - WH, 2))
 
         #Non-negative constraint
         #If all elements positive, constraint will be 0
-        nn_w = tf.sum(tf.abs(W) - W)
-        nn_h = tf.sum(tf.abs(H) - H)
+        nn_w = tf.reduce_sum(tf.abs(W) - W)
+        nn_h = tf.reduce_sum(tf.abs(H) - H)
         constraint = INFINITY * (nn_w + nn_h)
 
         self.loss = loss= f_norm + constraint
-        self.optimize = tf.train.AdagradOptimiber(self.lr).minimize(loss)
+        self.optimize = tf.train.AdagradOptimizer(self.lr).minimize(loss)
 
 
     def _build_mu_algorithm(self):
@@ -130,7 +130,7 @@ class TFNMF(object):
         H = self.H.eval()
         return W, H
 
-    def _run_grad(sess, max_iter, min_delta):
+    def _run_grad(self, sess, max_iter, min_delta):
         pre_loss = INFINITY
         for i in xrange(max_iter):
             loss, _ = sess.run(self.loss, self.optimize)
