@@ -133,7 +133,7 @@ class TFNMF(object):
     def _run_grad(self, sess, max_iter, min_delta):
         pre_loss = INFINITY
         for i in xrange(max_iter):
-            loss, _ = sess.run(self.loss, self.optimize)
+            loss, _ = sess.run([self.loss, self.optimize])
             if pre_loss - loss < min_delta:
                 break
             pre_loss = loss
